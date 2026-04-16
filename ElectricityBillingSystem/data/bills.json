@@ -1,0 +1,3 @@
+[
+  {"billId":"BILL0001","customerId":"C001","unitsConsumed":150.0,"ratePerUnit":8.5,"totalAmount":1275.0,"billMonth":"2025-10","status":"PAID","generatedDate":"2025-10-28"}
+]

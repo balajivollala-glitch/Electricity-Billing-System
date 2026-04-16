@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Login - Electricity Billing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <h1>Electricity Billing System</h1>
+            <h2>Customer Login</h2>
+            <form id="customerLoginForm">
+                <div class="form-group">
+                    <label for="customerId">Customer ID</label>
+                    <input type="text" id="customerId" name="customerId" required>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
+                <p class="switch-link">Are you an admin? <a href="index.html">Login here</a></p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080';
+
+        document.getElementById('customerLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const customerId = document.getElementById('customerId').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/customers/${customerId}`);
+                
+                if (response.ok) {
+                    const customer = await response.json();
+                    localStorage.setItem('customerId', customerId);
+                    localStorage.setItem('customerName', customer.name);
+                    window.location.href = 'customer-dashboard.html';
+                } else {
+                    alert('Customer ID not found!');
+                }
+            } catch (error) {
+                alert('Error: Make sure Java server is running!');
+            }
+        });
+    </script>
+</body>
+</html>

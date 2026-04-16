@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard - Electricity Billing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="navbar">
+        <h1>Welcome, <span id="customerNameDisplay"></span></h1>
+        <button onclick="logout()" class="btn-secondary">Logout</button>
+    </div>
+
+    <div class="container">
+        <h2>Your Bills</h2>
+        <div id="customerBillsList"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080';
+        
+        // Check if customer is logged in
+        const customerId = localStorage.getItem('customerId');
+        const customerName = localStorage.getItem('customerName');
+        
+        if (!customerId) {
+            window.location.href = 'customer-login.html';
+        }
+
+        document.getElementById('customerNameDisplay').textContent = customerName;
+
+        function logout() {
+            localStorage.removeItem('customerId');
+            localStorage.removeItem('customerName');
+            window.location.href = 'customer-login.html';
+        }
+
+        // Load customer bills
+        async function loadCustomerBills() {
+            try {
+                const response = await fetch(`${API_URL}/bills/customer/${customerId}`);
+                const bills = await response.json();
+                
+                const html = bills.map(b => `
+                    <div class="card bill-card">
+                        <div class="bill-header">
+                            <h3>Bill #${b.billId}</h3>
+                            <span class="status-${b.status.toLowerCase()}">${b.status}</span>
+                        </div>
+                        <div class="bill-details">
+                            <p><strong>Billing Month:</strong> ${b.billMonth}</p>
+                            <p><strong>Units Consumed:</strong> ${b.unitsConsumed} kWh</p>
+                            <p><strong>Rate per Unit:</strong> ₹${b.ratePerUnit}</p>
+                            <p><strong>Total Amount:</strong> ₹${b.totalAmount.toFixed(2)}</p>
+                            <p><strong>Generated On:</strong> ${new Date(b.generatedDate).toLocaleDateString()}</p>
+                        </div>
+                        <div class="card-actions">
+                            <button onclick="printBill('${b.billId}')" class="btn-primary">Print/Download</button>
+                            ${b.status === 'UNPAID' ? `<button onclick="payBill('${b.billId}')" class="btn-success">Pay Bill</button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('customerBillsList').innerHTML = html || '<p>No bills found</p>';
+            } catch (error) {
+                document.getElementById('customerBillsList').innerHTML = '<p>Error loading bills. Is server running?</p>';
+            }
+        }
+
+        // Pay Bill
+        async function payBill(billId) {
+            if (!confirm('Mark this bill as paid?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/bills/${billId}/pay`, {
+                    method: 'PUT'
+                });
+
+                if (response.ok) {
+                    alert('Bill marked as paid!');
+                    loadCustomerBills();
+                } else {
+                    alert('Failed to update bill status');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Print Bill
+        function printBill(billId) {
+            const billCard = event.target.closest('.bill-card');
+            const printWindow = window.open('', '', 'height=600,width=800');
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Electricity Bill</title>
+                    <style>
+                        body {
+                            font-family: 'Poppins', Arial, sans-serif;
+                            padding: 40px;
+                            color: #333;
+                        }
+                        h1 { color: #8f191d; }
+                        .bill-content {
+                            border: 2px solid #03505d;
+                            padding: 30px;
+                            border-radius: 10px;
+                        }
+                        p { margin: 10px 0; }
+                        .total { 
+                            font-size: 24px; 
+                            color: #8f191d; 
+                            font-weight: bold;
+                            margin-top: 20px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="bill-content">
+                        <h1>Electricity Bill</h1>
+                        ${billCard.innerHTML.replace(/<button[^>]*>.*?<\/button>/g, '')}
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+        }
+
+        // Load bills on page load
+        loadCustomerBills();
+    </script>
+</body>
+</html>
